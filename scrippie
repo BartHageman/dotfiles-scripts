@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# Directory where scripts are stored
+SCRIPTS_DIR="$HOME/Documents/Personal/Scripts"
+
+# Check if script name provided
+if [ -z "$1" ]; then
+    echo "Usage: $0 <script-name>"
+    exit 1
+fi
+
+SCRIPT_NAME="$1"
+
+# # Add .sh extension if not present
+# if [[ "$SCRIPT_NAME" != *.sh ]]; then
+#     SCRIPT_NAME="${SCRIPT_NAME}.sh"
+# fi
+
+# Full path to the script
+SCRIPT_PATH="$SCRIPTS_DIR/$SCRIPT_NAME"
+
+# Ensure scripts directory exists
+mkdir -p "$SCRIPTS_DIR"
+
+# Create script if it doesn't exist
+if [ ! -f "$SCRIPT_PATH" ]; then
+    echo "Creating new script: $SCRIPT_PATH"
+    
+    cat > "$SCRIPT_PATH" << 'EOF'
+#!/bin/bash
+
+EOF
+    
+    # Make it executable
+    chmod +x "$SCRIPT_PATH"
+    echo "Script created and made executable"
+else
+    echo "Opening existing script: $SCRIPT_PATH"
+fi
+
+# Open in neovim
+nvim "+2" "$SCRIPT_PATH"
