@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+if [[ $# -eq 1 ]]; then
+    selected=$1
+else
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "$SCRIPT_DIR/sessionizer_paths.txt" ]]; then
+    selected=$(while IFS= read -r folder; do
+        folder="${folder/#\~/$HOME}"
+        find "$folder" -mindepth 1 -maxdepth 1 -type d
+    done < "$SCRIPT_DIR/sessionizer_paths.txt" | fzf)
+else
+    echo "paths.txt not found, using default paths"
+    selected=$(find ~/Documents/Work/ ~/Documents/Work ~/Documents/Personal ~ ~/.config/ -mindepth 1 -maxdepth 1 -type d | fzf)
+fi
+fi
+
+if [[ -z $selected ]]; then
+    exit 0
+fi
+
+selected_name=$(basename "$selected" | tr . _)
+tmux_running=$(pgrep tmux)
+
+if [[ -z $TMUX ]] && [[ -z $tmux_running ]]; then
+    tmux new-session -s "$selected_name" -c "$selected"
+    tmux send-keys -t "$selected_name" "tmux_preset_loader" Enter
+    exit 0
+fi
+
+if ! tmux has-session -t="$selected_name" 2> /dev/null; then
+    tmux new-session -ds "$selected_name" -c "$selected"
+    tmux send-keys -t "$selected_name" "tmux_preset_loader" Enter
+fi
+
+tmux switch-client -t "$selected_name"
