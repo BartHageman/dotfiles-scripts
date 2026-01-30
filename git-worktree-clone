@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+set -euo pipefail # Return error code if anything goes wrong
+
+# Usage: git-worktree-clone <repo-url> [directory]
+# Mirrors git clone syntax but creates a worktree-friendly structure:
+#   <directory>/
+#   ├── .bare/          # bare repository
+#   ├── .git            # file pointing to .bare
+#   └── <branch>/       # worktree for default branch
+
+repo_url="${1:?Usage: git-worktree-clone <repo-url> [directory]}"
+
+# Derive directory name like git clone does
+if [[ -n "${2:-}" ]]; then
+    dir_name="$2"
+else
+    dir_name="${repo_url%/}"
+    dir_name="${dir_name%.git}"
+    dir_name="${dir_name##*/}"
+fi
+
+if [[ -e "$dir_name" ]]; then
+    echo "fatal: destination path '$dir_name' already exists." >&2
+    exit 1
+fi
+
+mkdir -p "$dir_name"
+cd "$dir_name"
+base_dir="$(pwd)"
+
+git clone --bare "$repo_url" .bare
+
+echo "gitdir: .bare" > .git
+
+# Bare repos lack fetch refspec—fix it, then fetch to populate remote tracking refs
+git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
+git fetch origin
+
+# Query remote directly for default branch
+default_branch=$(git ls-remote --symref "$repo_url" HEAD | awk '/^ref:/ {sub(/refs\/heads\//, "", $2); print $2}')
+
+git worktree add "$base_dir/$default_branch" "$default_branch"
+
+# Set up tracking
+git -C "$base_dir/$default_branch" branch --set-upstream-to="origin/$default_branch"
+
+echo "Done: $dir_name/$default_branch"
