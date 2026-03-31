@@ -3,4 +3,6 @@ if [[ -x ./.tmux_preset ]]; then
     ./.tmux_preset
 elif [[ -x ~/.tmux_preset ]]; then
     ~/.tmux_preset
+else
+    clear
 fi
