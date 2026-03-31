@@ -7,11 +7,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [[ -f "$SCRIPT_DIR/paths.txt" ]]; then
     selected=$(while IFS= read -r folder; do
         folder="${folder/#\~/$HOME}"
-        find "$folder" -mindepth 1 -maxdepth 1 -type d
-    done < "$SCRIPT_DIR/paths.txt" | fzf)
+        find -L "$folder" -mindepth 1 -maxdepth 1 -type d
+    done < "$SCRIPT_DIR/paths.txt" | fzf --style full)
 else
     echo "paths.txt not found, using default paths"
-    selected=$(find ~/Documents/Work/ ~/Documents/Work ~/Documents/Personal ~ ~/.config/ -mindepth 1 -maxdepth 1 -type d | fzf)
+    selected=$(find -L ~/Documents/Work/ ~/Documents/Work ~/Documents/Personal ~ ~/.config/ -mindepth 1 -maxdepth 1 -type d | fzf --style full)
 fi
 fi
 
