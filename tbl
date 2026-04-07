@@ -1,0 +1,129 @@
+#!/usr/bin/env python3
+"""Pretty-print columnar stdin as a unicode box-drawn table."""
+import os
+import sys
+import argparse
+from collections import Counter
+
+RESET = "\033[0m"
+
+
+def color_code(spec):
+    named = {"dim": "2", "red": "31", "green": "32", "yellow": "33",
+             "blue": "34", "magenta": "35", "cyan": "36", "gray": "90", "grey": "90"}
+    if spec in named:
+        return f"\033[{named[spec]}m"
+    try:
+        n = int(spec)
+        if 0 <= n <= 255:
+            return f"\033[38;5;{n}m"
+    except ValueError:
+        pass
+    return "\033[2m"
+
+
+def build_table(rows, headers=None, clr="", max_width=0):
+    if not rows and not headers:
+        return ""
+
+    all_rows = ([headers] if headers else []) + rows
+    ncols = max(len(r) for r in all_rows)
+
+    for r in all_rows:
+        while len(r) < ncols:
+            r.append("")
+
+    widths = [max(len(r[i]) for r in all_rows) for i in range(ncols)]
+
+    # Shrink widest columns until table fits terminal
+    if max_width > 0:
+        overhead = 3 * ncols + 1
+        while sum(widths) + overhead > max_width and max(widths) > 2:
+            widths[widths.index(max(widths))] -= 1
+
+    # Truncate cells that exceed their column width
+    for r in all_rows:
+        for i in range(ncols):
+            if len(r[i]) > widths[i]:
+                r[i] = r[i][:widths[i] - 1] + "…" if widths[i] > 1 else r[i][:1]
+
+    rst = RESET if clr else ""
+
+    def hline(l, m, r_ch, f="─"):
+        inner = m.join(f * (w + 2) for w in widths)
+        return f"{clr}{l}{inner}{r_ch}{rst}"
+
+    def dataline(row):
+        sep = f"{clr}│{rst}" if clr else "│"
+        cells = [f" {row[i]:<{widths[i]}} " for i in range(ncols)]
+        return sep + sep.join(cells) + sep
+
+    out = [hline("╭", "┬", "╮")]
+    start = 0
+    if headers:
+        out.append(dataline(all_rows[0]))
+        out.append(hline("├", "┼", "┤"))
+        start = 1
+    for r in all_rows[start:]:
+        out.append(dataline(r))
+    out.append(hline("╰", "┴", "╯"))
+    return "\n".join(out)
+
+
+def main():
+    ap = argparse.ArgumentParser(description="Pretty-print columnar stdin as a unicode table")
+    ap.add_argument("-H", "--header", action="store_true", help="treat first row as header")
+    ap.add_argument("-d", "--delimiter", default=None, help="column delimiter (default: whitespace)")
+    ap.add_argument("-n", "--cols", type=int, default=0, help="force column count (last col gets remainder)")
+    ap.add_argument("-w", "--width", type=int, default=0, help="max table width (default: terminal width)")
+    ap.add_argument("-W", "--no-wrap", action="store_true", help="disable terminal width truncation")
+    ap.add_argument("-c", "--color", default="auto", metavar="MODE",
+                    help="border color: auto|always|never (default: auto)")
+    ap.add_argument("-b", "--border-color", default="240", metavar="COLOR",
+                    help="color name or 0-255 index (default: 240, a muted gray)")
+    args = ap.parse_args()
+
+    raw = sys.stdin.read()
+    if not raw.strip():
+        return
+
+    lines = [l for l in raw.splitlines() if l.strip()]
+
+    if args.delimiter:
+        rows = [l.split(args.delimiter) for l in lines]
+    else:
+        ncols = args.cols
+        if ncols <= 0:
+            counts = [len(l.split()) for l in lines]
+            ncols = Counter(counts).most_common(1)[0][0]
+        rows = []
+        for l in lines:
+            if len(l.split()) >= ncols:
+                rows.append(l.split(None, ncols - 1))
+
+    if not rows:
+        return
+
+    headers = None
+    if args.header:
+        headers = rows.pop(0)
+
+    use_color = (args.color == "always"
+                 or (args.color == "auto" and sys.stdout.isatty()))
+    clr = color_code(args.border_color) if use_color else ""
+
+    max_width = 0
+    if not args.no_wrap:
+        if args.width > 0:
+            max_width = args.width
+        else:
+            try:
+                max_width = os.get_terminal_size().columns
+            except OSError:
+                max_width = 0
+
+    sys.stdout.write(build_table(rows, headers, clr, max_width) + "\n")
+
+
+if __name__ == "__main__":
+    main()
