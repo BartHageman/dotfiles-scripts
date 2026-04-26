@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail # Return error code if anything goes wrong
+
 tmp="$(mktemp -t yazi-cwd.XXXXXX)"
 tmux display-popup -E -w 90% -h 90% "yazi --cwd-file=\"$tmp\""
 [ -s "$tmp" ] && tmux send-keys -t "$1" "cd \"$(cat "$tmp")\"" Enter
