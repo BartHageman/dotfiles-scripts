@@ -1,7 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail # Return error code if anything goes wrong
 
 # Directory where scripts are stored
-SCRIPTS_DIR="$HOME/Documents/Personal/Scripts"
+SCRIPTS_DIR="$HOME/.local/share/scripts"
 
 # Check if script name provided
 if [ -z "$1" ]; then
