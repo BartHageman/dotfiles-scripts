@@ -28,7 +28,7 @@ if [ ! -f "$SCRIPT_PATH" ]; then
     echo "Creating new script: $SCRIPT_PATH"
     
     cat > "$SCRIPT_PATH" << 'EOF'
-#!/bin/bash
+#!/usr/bin/env bash
 
 EOF
     
