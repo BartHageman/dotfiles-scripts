@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+ACTION=$(echo -e "SEND\nRECEIVE\n" | fzf --prompt "Do you want to send or receive a taildrop?")
+
+if [[ $ACTION == 'SEND' ]]; then
+    WHICHFILE="$(fzf --prompt "Which file?")"
+    WHERETO="$(tailscale status | awk '{print $2}' | fzf --prompt "Where to?"):"
+    sudo tailscale file get ~/Downloads/taildrop
+    tailscale file cp "$WHICHFILE" "$WHERETO"
+    echo 'Sending!'
+else
+    mkdir -p ~/Downloads/taildrop
+    sudo tailscale file get ~/Downloads/taildrop
+    echo 'Receiving!'
+fi
